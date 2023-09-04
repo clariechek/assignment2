@@ -32,7 +32,7 @@ public class WeatherProtocol {
                 state = INVALID_REQUEST;
             }
         } else if (state == RECEIVED_REQUEST) {
-            if (theInput == null) {
+            if (theInput == null || theInput.isEmpty()) {
                 theOutput = "204 - HTTP_NO_CONTENT";
                 state = CS_NO_CONTENT;
             } else {
