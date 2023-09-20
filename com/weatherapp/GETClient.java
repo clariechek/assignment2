@@ -1,3 +1,5 @@
+package com.weatherapp;
+
 /*
  * Makes a HTTP GET request to the aggregation server and displays the weather data.
  */

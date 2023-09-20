@@ -1,7 +1,10 @@
 {
     "java.project.referencedLibraries": [
         "lib/**/*.jar",
-        "java-json.jar",
-        "json-simple-1.1.jar"
+        "com/weatherapp/java-json.jar",
+        "com/weatherapp/json-simple-1.1.jar"
+    ],
+    "java.project.sourcePaths": [
+        "."
     ]
 }

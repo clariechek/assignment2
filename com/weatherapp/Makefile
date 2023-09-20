@@ -4,7 +4,7 @@
 # # Directory for source files
 # SRC = ./src/
 
-FLAGS = -g -d -cp java-json.jar
+FLAGS = -cp json-simple-1.1.jar
 
 COMPILE = javac $(FLAGS)
 
@@ -22,4 +22,4 @@ clean:
 	rm -rf ./*
 
 # Compilation: javac -cp first.jar:second.jar:third.jar YourClass.java YourClass2.java
-# Run: java -cp json-simple-1.1.jar ContentServer.java csdata.json
+# Run: java -cp json-simple-1.1.jar ContentServer.java weather.json
