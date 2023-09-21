@@ -10,6 +10,8 @@ package com.weatherapp;
 import java.io.*;
 import java.net.Socket;
 import java.util.*;
+import java.net.URI;
+import java.net.URISyntaxException;
 // import org.json.CDL;
 // import org.json.Cookie;
 // import org.json.CookieList;
@@ -41,12 +43,16 @@ import org.json.simple.parser.Yytoken;
 // import org.apache.commons.io.IOUtils; 
 
 public class ContentServer {
-    private static int idCounter = 0;
     private int id;
 
-    private ContentServer() {
-        // Assign a unique id to each content server
-        this.id = idCounter++;
+    private ContentServer() {}
+
+    public void setContentServerID(int id) {
+        this.id = id;
+    }
+
+    public int getContentServerID() {
+        return this.id;
     }
 
     // Method that counts the number of entries in the file.
@@ -281,115 +287,10 @@ public class ContentServer {
             JSONArray weatherData = (JSONArray) data.get("weather_data");
             // PUT request header
             String request = "PUT /weather.json HTTP/1.1\r\nUser-Agent: ATOMClient/1/0\r\nContent-Type: application/json\r\nContent-Length: " + weatherData.size() + "\r\n\r\n";
-            // List<String> content = new ArrayList<String>();
-            // for (Object o : jsonObjects) {
-            //     JSONObject jsonObject = (JSONObject) o;
-            //     content.add(jsonObject.toJSONString());
-            //     System.out.println(jsonObject.toString());
-            // }
-
-            // int size = jsonObjects.size();
-            // String[] contentArray = content.toArray(new String[size]);
-            // request += contentArray;
-            // // for (Object o : jsonObjects) {
-            // //     JSONObject jsonObject = (JSONObject) o;
-            // //     request += jsonObject.toJSONString();
-            // // }
-
-            // out.println("PUT /weather.json HTTP/1.1\r\nUser-Agent: ATOMClient/1/0\r\nContent-Type: application/json\r\nContent-Length: " + jsonObjects.size() + "\r\n\r\n");
-            // out.println("User-Agent: ATOMClient/1/0");
-            // out.println("Content-Type: application/json");
-            // out.println("Content-Length: " + jsonObjects.size());
-
-            // // Add content server id to the request
-            // request += "Content Server ID: " + data.getContentServerId() + "\n";
 
             // Add the Content Server Data to the request
             request += data.toJSONString();
-            // Iterator i = jsonObjects.iterator();
-            // for (Object o : jsonObjects) {
-            //     i.next();
-            //     JSONObject jsonObject = (JSONObject) o;
-
-            //     // out.println("{");
-            //     request += "{\n";
-            //     String id = (String) jsonObject.get("id");
-            //     // out.println("   id: " + "\"" + id + "\",");
-            //     request += "   \"id\": " + "\"" + id + "\"," + "\n";
-
-            //     String name = (String) jsonObject.get("name");
-            //     // out.println("   name: " + "\"" + name + "\",");
-            //     request += "   \"name\": " + "\"" + name + "\"," + "\n";
-
-            //     String state = (String) jsonObject.get("state");
-            //     // out.println("   state: " + "\"" + state + "\",");
-            //     request += "   \"state\": " + "\"" + state + "\"," + "\n";
-
-            //     String time_zone = (String) jsonObject.get("time_zone");
-            //     // out.println("   time_zone: " + "\"" + time_zone + "\",");
-            //     request += "   \"time_zone\": " + "\"" + time_zone + "\"," + "\n";
-
-            //     double lat = (Double) jsonObject.get("lat");
-            //     // out.println("   lat: " + lat + ",");
-            //     request += "   \"lat\": " + lat + "," + "\n";
-
-            //     double lon = (Double) jsonObject.get("lon");
-            //     // out.println("   lon: " + lon + ",");
-            //     request += "   \"lon\": " + lon + "," + "\n";
-
-            //     String local_date_time = (String) jsonObject.get("local_date_time");
-            //     // out.println("   local_date_time: " + "\"" + local_date_time + "\",");
-            //     request += "   \"local_date_time\": " + "\"" + local_date_time + "\"," + "\n";
-
-            //     String local_date_time_full = (String) jsonObject.get("local_date_time_full");
-            //     // out.println("   local_date_time_full: " + "\"" + local_date_time_full + "\",");
-            //     request += "   \"local_date_time_full\": " + "\"" + local_date_time_full + "\"," + "\n";
-
-            //     double air_temp = (Double) jsonObject.get("air_temp");
-            //     // out.println("   air_temp: " + air_temp + ",");
-            //     request += "   \"air_temp\": " + air_temp + "," + "\n";
-
-            //     double apparent_t = (Double) jsonObject.get("apparent_t");
-            //     // out.println("   apparent_t: " + apparent_t + ",");
-            //     request += "   \"apparent_t\": " + apparent_t + "," + "\n";
-
-            //     String cloud = (String) jsonObject.get("cloud");
-            //     // out.println("   cloud: " + "\"" + cloud + "\",");
-            //     request += "   \"cloud\": " + "\"" + cloud + "\"," + "\n";
-
-            //     double dewpt = (Double) jsonObject.get("dewpt");
-            //     // out.println("   dewpt: " + dewpt + ",");
-            //     request += "   \"dewpt\": " + dewpt + "," + "\n";
-
-            //     double press = (Double) jsonObject.get("press");
-            //     // out.println("   press: " + press + ",");
-            //     request += "   \"press\": " + press + "," + "\n";
-
-            //     long rel_hum = (Long) jsonObject.get("rel_hum");
-            //     // out.println("   rel_hum: " + rel_hum + ",");
-            //     request += "   \"rel_hum\": " + rel_hum + "," + "\n";
-
-            //     String wind_dir = (String) jsonObject.get("wind_dir");
-            //     // out.println("   wind_dir: " + "\"" + wind_dir + "\",");
-            //     request += "   \"wind_dir\": " + "\"" + wind_dir + "\"," + "\n";
-
-            //     long wind_spd_kmh = (Long) jsonObject.get("wind_spd_kmh");
-            //     // out.println("   wind_spd_kmh: " + wind_spd_kmh + ",");
-            //     request += "   \"wind_spd_kmh\": " + wind_spd_kmh + "," + "\n";
-                
-            //     long wind_spd_kt = (Long) jsonObject.get("wind_spd_kt");
-            //     // out.println("   wind_spd_kt: " + wind_spd_kt);
-            //     request += "   \"wind_spd_kt\": " + wind_spd_kt + "\n";
-                
-            //     if (i.hasNext()) {
-            //         // out.println("},");
-            //         request += "},\n";
-            //     } else {
-            //         // out.println("}");
-            //         request += "}";
-            //     }
-            // }
-
+            
             // Send PUT request to Aggregation server
             out.println(request);
             out.flush();
@@ -415,21 +316,6 @@ public class ContentServer {
             // Close buffer and writer
             in.close();
             out.close();
-
-            // // Read from and write to the stream according to the server's protocol
-            // String fromServer, fromUser;
-            // while ((fromServer = in.readLine()) != null) {
-            //     System.out.println("Server: " + fromServer);
-            //     if (fromServer.equals("Bye."))
-            //         break;
-                
-            //     fromUser = stdIn.readLine();
-            //     if (fromUser != null) {
-            //         System.out.println("Client: " + fromUser);
-            //         out.println(fromUser);
-            //     }
-            // }
-            // // Close the streams and the sockets
         } catch (Exception e) {
             System.out.println("Exception: " + e.getMessage());
         }
@@ -439,55 +325,40 @@ public class ContentServer {
         // Create content server
         ContentServer contentServer = new ContentServer();
         
-        // Get server name and port number
-        String serverName = args[0];
-        int portNumber = Integer.parseInt(args[1]);
+        // Get server name and port number from "http://servername.domain.domain:portnumber", and station ID.
+        URI uri;
+        String serverName = "localhost";
+        int portNumber = 4567;
+        try {
+            uri = new URI(args[0]);
+            // URL url = uri.toURL();
+            serverName = uri.getHost();
+            System.out.println("Server name: " + uri.getHost() + " Port number: " + uri.getPort() + " Station ID: " + args[1] + " File name: " + args[2]);
+            if (uri.getPort() == -1) {
+                portNumber = 4567;
+            } else {
+                portNumber = uri.getPort();
+            } 
+        } catch (URISyntaxException e) {
+            System.out.println("Exception: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+        }
+        
+        // String serverName = args[0];
+        // int portNumber = Integer.parseInt(args[1]);
+
+        // Assign unique ID to content server
+        int stationID = Integer.parseInt(args[1]);
+        contentServer.setContentServerID(stationID);
         // System.out.println("Connecting to " + serverName + " on port " + portNumber + "...");
         // System.out.println("File name: " + args[2]);
 
         // Parse file and store in JSON array
-        JSONObject data = loadFromFile(args[2], contentServer.id);
+        JSONObject data = loadFromFile(args[2], stationID);
         // ContentServerData data = loadFromFile(args[2], contentServer.id);
 
         // Connect to aggregation server and send PUT request to aggregation server
         contentServer.sendPutRequest(serverName, portNumber, data);
     }
-    
-
-    // Connect to aggregation server
-
-    // Send PUT request to aggregation server
-    // public static void main(String[] args) {
-    //     String hostName = args[0];
-    //     int portNumber = Integer.parseInt(args[1]);
-
-    //     try (
-    //         // Open a socket
-    //         Socket socket = new Socket(hostName, portNumber);
-    //         System.out.println("Connecting...");
-
-    //         // Open an input stream and output stream to the socket
-    //         PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-    //         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-    //         BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
-
-    //     ) {
-    //         // Read from and write to the stream according to the server's protocol
-    //         String fromServer, fromUser;
-    //         while ((fromServer = in.readLine()) != null) {
-    //             System.out.println("Server: " + fromServer);
-    //             if (fromServer.equals("Bye."))
-    //                 break;
-                
-    //             fromUser = stdIn.readLine();
-    //             if (fromUser != null) {
-    //                 System.out.println("Client: " + fromUser);
-    //                 out.println(fromUser);
-    //             }
-    //         }
-    //         // Close the streams and the sockets
-    //     } catch (Exception e) {
-    //         System.out.println("Exception: " + e.getMessage());
-    //     }
-    // }
 }
