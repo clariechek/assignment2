@@ -5,7 +5,7 @@ Note: Currently, the following has not been done yet, but will be completed:
 1. Aggregation server tracks duration content server has connected and removes corresponding data after 30 seconds.
 2. Synchronise aggregation server and content server using lamport clocks.
 3. Testing
-4. HTTP - currently not working when I type "http://localhost:4567" in my browser after starting the aggregation server.
+4. HTTP - currently not displaying the webpage when I type "http://localhost:4567" in my browser after starting the aggregation server.
 5. Makefile
 
 
