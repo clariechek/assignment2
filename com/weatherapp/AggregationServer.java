@@ -8,28 +8,11 @@ package com.weatherapp;
 
 import java.util.*;
 import java.io.*;
-// import java.io.BufferedReader;
-// import java.io.IOException;
-// import java.io.InputStreamReader;
-// import java.io.PrintWriter;
-// import java.io.File;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import org.json.simple.ItemList;
 import org.json.simple.JSONArray;
-import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
-import org.json.simple.JSONStreamAware;
-import org.json.simple.JSONValue;
-import org.json.simple.parser.ContainerFactory;
-import org.json.simple.parser.ContentHandler;
 import org.json.simple.parser.JSONParser;
-// import org.json.simple.parser.ParseException;
-import org.json.simple.parser.Yytoken;
 
 public class AggregationServer extends Thread {
     private ServerSocket serverSocket;
@@ -37,6 +20,7 @@ public class AggregationServer extends Thread {
     private boolean running = false;
     private List<Integer> connectedContentServers = new ArrayList<Integer>();
     private HashMap<Integer, JSONObject> weatherData = new HashMap<Integer, JSONObject>();
+    private LamportClock lamportClock = null;
 
     public AggregationServer(int port) {
         this.port = port;
@@ -45,6 +29,20 @@ public class AggregationServer extends Thread {
     public void startServer() {
         try {
             serverSocket = new ServerSocket(port);
+            
+            // Initialise pid allocator to 1 (pid 0 belongs to Aggregation Server)
+            checkIfFileExists("pid.txt");
+            FileWriter file = new FileWriter("pid.txt");
+            file.write("1");
+            file.close();
+
+            // Initialise lamport clock
+            lamportClock = new LamportClock(0);
+            checkIfFileExists("LC_AS.txt");
+            file = new FileWriter("LC_AS.txt");
+            file.write("0");
+            file.close();
+
             this.start();
         } catch (IOException e) {
             e.printStackTrace();
@@ -53,6 +51,9 @@ public class AggregationServer extends Thread {
 
     public void stopServer() {
         running = false;
+        // Delete pid allocator
+        File file = new File("pid.txt");
+        file.delete();
         this.interrupt();
     }
 
@@ -93,11 +94,6 @@ public class AggregationServer extends Thread {
         if (args.length != 0) {
             portNumber = Integer.parseInt(args[0]);
         }
-        // if (args.length == 0) {
-        //     System.out.println("Usage: java AggregationServer <port number>");
-        //     System.exit(0);
-        // }
-
         
         System.out.println("Starting AggregationServer on port " + portNumber);
 
@@ -111,39 +107,12 @@ public class AggregationServer extends Thread {
             e.printStackTrace();
         }
         server.stopServer();
-
-        // int portNumber = Integer.parseInt(args[0]);
-
-        // try (
-        //     ServerSocket serverSocket = new ServerSocket(portNumber);
-        //     Socket clientSocket = serverSocket.accept();
-
-        //     // Get socket's input and output stream and open readers and writers on them
-        //     PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-        //     BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-        // ) {
-        //     String inputLine, outputLine;
-
-        //     // Initiate conversation with client by writing to the socket
-        //     WeatherProtocol wp = new WeatherProtocol();
-        //     outputLine = wp.processInput(null);
-        //     out.println(outputLine);
-
-        //     // Communicate with the client by reading from and writing to the socket
-        //     while ((inputLine = in.readLine()) != null) {
-        //         outputLine = wp.processInput(inputLine);
-        //         out.println(outputLine);
-        //         if (outputLine.equals("Bye."))
-        //             break;
-        //     }
-        // }
     }
  }
 
  class RequestHandler extends Thread {
     private Socket socket;
     private List<Integer> connectedContentServers = new ArrayList<Integer>();
-    // private ContentServerAndWeatherData contentServerAndWeatherData;
     private HashMap<Integer, JSONObject> weatherData = new HashMap<Integer, JSONObject>();
 
     RequestHandler(Socket socket, List<Integer> connectedContentServers, HashMap<Integer, JSONObject> weatherData) {
@@ -185,11 +154,7 @@ public class AggregationServer extends Thread {
 
     private void removeConnectedContentServer(int contentServerId) {
         connectedContentServers.remove(contentServerId);
-    }  
-
-    // public ContentServerAndWeatherData getConnectedContentServerAndWeatherData() {
-    //     return contentServerAndWeatherData;
-    // }
+    }
 
     @Override
     public void run() {
@@ -208,7 +173,6 @@ public class AggregationServer extends Thread {
             // Write out header to the client
             out.println("Aggregation Server 1.0");
             out.flush();
-
 
             boolean isHeaderLine = true, foundID = false, invalidJsonFormat = false, getReq = false, putReq = false, invalidReq = false, firstConnection = true;
             JSONObject jsonObject = null;

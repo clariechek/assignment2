@@ -5,45 +5,16 @@ package com.weatherapp;
  * aggregation server to upload new weather data to the aggregation server.
  */
 
-// import org.json.JSONTokener;
-// import org.json.JSONObject;
 import java.io.*;
 import java.net.Socket;
-import java.util.*;
 import java.net.URI;
 import java.net.URISyntaxException;
-// import org.json.CDL;
-// import org.json.Cookie;
-// import org.json.CookieList;
-// import org.json.HTTP;
-// import org.json.HTTPTokener;
-// import org.json.JSONArray;
-// import org.json.JSONException;
-// import org.json.JSONML;
-// import org.json.JSONObject;
-// import org.json.JSONString;
-// import org.json.JSONStringer;
-// import org.json.JSONTokener;
-// import org.json.JSONWriter;
-// import org.json.XML;
-// import org.json.XMLTokener;
-
-import org.json.simple.ItemList;
 import org.json.simple.JSONArray;
-import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
-import org.json.simple.JSONStreamAware;
-import org.json.simple.JSONValue;
-import org.json.simple.parser.ContainerFactory;
-import org.json.simple.parser.ContentHandler;
-import org.json.simple.parser.JSONParser;
-// import org.json.simple.parser.ParseException;
-import org.json.simple.parser.Yytoken;
-// import net.sf.json.JSONSerializer;
-// import org.apache.commons.io.IOUtils; 
 
 public class ContentServer {
     private int id;
+    private LamportClock lamportClock = null;
 
     private ContentServer() {}
 
@@ -53,6 +24,86 @@ public class ContentServer {
 
     public int getContentServerID() {
         return this.id;
+    }
+
+    // Increment pid counter in "pid.txt" file, and return new pid.
+    public int incrementPid() {
+        int pid = 0;
+        try {
+            File pidFile = new File("pid.txt");
+            FileInputStream fis = new FileInputStream(pidFile);
+            InputStreamReader isr = new InputStreamReader(fis, "UTF-8");
+            BufferedReader br = new BufferedReader(isr);
+            String line;
+            while ((line = br.readLine()) != null) {
+                pid = Integer.parseInt(line);
+                pid++;
+                FileWriter pidFileWriter = new FileWriter(pidFile);
+                pidFileWriter.write(Integer.toString(pid));
+                pidFileWriter.close();
+            }
+            br.close();
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+        }
+        return pid;
+    }
+
+    // Method that checks if lamport clock file exists. If yes, then read from file and set lamport clock. Otherwise, create file and initialise lamport clock to 0.
+    public void initialiseLamportClock() {
+        String fileName = "LC_CS" + this.id + ".txt";
+        File file = new File(fileName);
+        if (!file.exists()) {
+            try {
+                file.createNewFile();
+                // Initialise Lamport clock file to 0
+                FileWriter fileWriter = new FileWriter(fileName);
+                fileWriter.write("0");
+                fileWriter.close();
+
+                // Get process id from "pid.txt" and initialise Lamport clock
+                int process_id = incrementPid();
+                lamportClock = new LamportClock(process_id);
+                lamportClock.setTime(0);
+
+                
+            } catch (Exception e) {
+                System.out.println("Exception: " + e.getMessage());
+            }
+            System.out.println("File created " + fileName);
+        } else {
+            System.out.println(fileName + "already exists");
+
+            // Read from file and set lamport clock
+            try {
+                FileInputStream fis = new FileInputStream(fileName);
+                InputStreamReader isr = new InputStreamReader(fis, "UTF-8");
+                BufferedReader br = new BufferedReader(isr);
+                String line;
+                while ((line = br.readLine()) != null) {
+                    int time = Integer.parseInt(line);
+                    // Get process id from "pid.txt" and initialise Lamport clock
+                    int process_id = incrementPid();
+                    lamportClock = new LamportClock(process_id);
+                    lamportClock.setTime(time);
+                }
+                br.close();
+            } catch (Exception e) {
+                System.out.println("Exception: " + e.getMessage());
+            }
+        }
+    }
+
+    // Method that updates lamport clock file with new lamport clock time.
+    public void updateLamportClockFile() {
+        String fileName = "LC_CS" + this.id + ".txt";
+        try {
+            FileWriter fileWriter = new FileWriter(fileName);
+            fileWriter.write(Integer.toString(lamportClock.getTime()));
+            fileWriter.close();
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+        }
     }
 
     // Method that counts the number of entries in the file.
@@ -256,23 +307,6 @@ public class ContentServer {
         contentServerData.put("weather_data", jsonObjects);
         
         return contentServerData;
-
-        // // Create a parser
-        // JSONParser parser = new JSONParser();
-        // JSONArray jsonObjects = null;
-
-        // try {
-            
-        //     // File file = new File(fileName);
-        //     // InputStream is = new FileInputStream(file);
-        //     // JSONTokener tokener = new JSONTokener(is);
-        //     // jsonObjects = new JSONArray(tokener);
-        //     // Parse the file
-        //     jsonObjects = (JSONArray) parser.parse(new FileReader(fileName));
-        // } catch (Exception e) {
-        //     e.printStackTrace();
-        // }
-        // return jsonObjects;
     }
 
     private void sendPutRequest(String serverName, int portNumber, JSONObject data) {
@@ -284,13 +318,20 @@ public class ContentServer {
             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         ) {
+            // Increment Lamport clock
+            lamportClock.tick();
+
+            // Add Lamport clock time and pid to data
+            data.put("lamport_clock_time", lamportClock.getTime());
+            data.put("process_id", lamportClock.getProcessId());
+
             JSONArray weatherData = (JSONArray) data.get("weather_data");
             // PUT request header
             String request = "PUT /weather.json HTTP/1.1\r\nUser-Agent: ATOMClient/1/0\r\nContent-Type: application/json\r\nContent-Length: " + weatherData.size() + "\r\n\r\n";
 
             // Add the Content Server Data to the request
             request += data.toJSONString();
-            
+
             // Send PUT request to Aggregation server
             out.println(request);
             out.flush();
@@ -299,18 +340,6 @@ public class ContentServer {
             String serverResponse;
             while ((serverResponse = in.readLine()) != null) {
                 System.out.println("Server: " + serverResponse);
-                // if (serverResponse.equals("201 - HTTP_CREATED.") && !this.connectedToAggregationServer) {
-                //     System.out.println("PUT request successful. First weather data received and storage file created.");
-                //     this.connectedToAggregationServer = true;
-                // } else if (serverResponse.equals("201 - HTTP_CREATED.") && this.connectedToAggregationServer) {
-                //     System.out.println("Server returned wrong response. Expected 200 - HTTP_OK but received 201 - HTTP_CREATED.");
-                // } else if (serverResponse.equals("200 - HTTP_OK.") && this.connectedToAggregationServer) {
-                //     System.out.println("PUT request successful. Updated weather data.");
-                // } else if (serverResponse.equals("200 - HTTP_OK.") && !this.connectedToAggregationServer) {
-                //     System.out.println("Server returned wrong response. Expected 201 - HTTP_CREATED but received 200 - HTTP_OK.");
-                // } else {
-                //     System.out.println("PUT request failed.");
-                // }
             }
 
             // Close buffer and writer
@@ -344,21 +373,21 @@ public class ContentServer {
         } catch (Exception e) {
             System.out.println("Exception: " + e.getMessage());
         }
-        
-        // String serverName = args[0];
-        // int portNumber = Integer.parseInt(args[1]);
 
         // Assign unique ID to content server
         int stationID = Integer.parseInt(args[1]);
         contentServer.setContentServerID(stationID);
-        // System.out.println("Connecting to " + serverName + " on port " + portNumber + "...");
-        // System.out.println("File name: " + args[2]);
+
+        // Initialise Lamport clock
+        contentServer.initialiseLamportClock();
 
         // Parse file and store in JSON array
         JSONObject data = loadFromFile(args[2], stationID);
-        // ContentServerData data = loadFromFile(args[2], contentServer.id);
 
         // Connect to aggregation server and send PUT request to aggregation server
         contentServer.sendPutRequest(serverName, portNumber, data);
+
+        // Update Lamport clock file
+        contentServer.updateLamportClockFile();
     }
 }
